@@ -157,6 +157,22 @@ Patching may not work for very primitive objects, like methods of lists.
 And sometimes, even if it works, it may confuse the whole program.
 It is not a good idea to patch some fundamental functions, like `int`.
 
+If you want to patch several functions at the same time, you can use the following
+syntax:
+
+```
+    def test_calls(self):
+        L1=[1,2,3]
+        L2=[20,30,40]
+        with patch("builtins.zip", wraps=zip) as pzip,\
+             patch("builtins.map", wraps=map) as pmap,\   
+	     patch("builtins.enumerate", wraps=enumerate) as penumerate:
+            result = f(L1, L2)
+            pzip.assert_called()
+```
+
+The patches are removed once the `with` block exits.
+
 The builtin functions are easy to patch, but functions in user importable
 modules are harder to patch, because they can be imported and called in
 several different ways. For example the NumPy function `np.linalg.inv`
@@ -225,3 +241,19 @@ Below is an example of this:
             f()
             method_dropna.mock.assert_called()
 ```
+
+## Miscellaneous
+
+[Class and module fixtures](https://docs.python.org/3/library/unittest.html#class-and-module-fixtures) don't work well with TMC. Normal test fixtures should, however, work.
+
+TMC does not support [sub tests](https://docs.python.org/3/library/unittest.html#distinguishing-test-iterations-using-subtests) either.
+
+### Creating a new exercise
+
+You can use the `newex.py` script to create a new exercise. It creates
+the necessary folders and solution and test file stubs. Example of use:
+```
+newex.py -p 3 -e 15 'name of exercise'
+``
+If the exercise name consists of several words, separate the words
+by spaces.
