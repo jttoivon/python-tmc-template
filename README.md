@@ -1,7 +1,7 @@
 # Using unit tests to automatically check Python exercises
 
-## Libraries use
-d
+## Libraries used
+
 * For testing values: [unittest](https://docs.python.org/3/library/unittest.html)
 * For testing how functions/methods have been called: [unittest.mock](https://docs.python.org/3/library/unittest.mock.html)
 * NumPy utilities for testing: [numpy.testing](https://docs.scipy.org/doc/numpy/reference/routines.testing.html)
@@ -133,3 +133,95 @@ NumPy and Pandas contain utilities for checking equality of arrays
 and DataFrames:  [numpy.testing](https://docs.scipy.org/doc/numpy/reference/routines.testing.html) and [pandas.testing](https://pandas.pydata.org/pandas-docs/stable/reference/general_utility_functions.html#testing-functions).
 
 ## Check that a function or method is called
+
+### Function calls
+
+To check if a function or method was called and how it was called,
+it needs to be *patched*. In the next example we check whether function `f`
+calls, directly or indirectly, function `zip`.
+
+```
+    def test_calls(self):
+        L1=[1,2,3]
+        L2=[20,30,40]
+        with patch("builtins.zip", wraps=zip) as pzip:
+            result = f(L1, L2)
+            pzip.assert_called()  # This does the same as the below test
+	    self.assertGreaterEqual(pzip.call_count, 1, msg="Expected that function 'f' would call function 'zip'!")
+```
+
+To ensure that patching does not affect the normal operation of function `zip`,
+we use the `wraps` parameter to tell that the patched function should
+call the original function after it has recorded the call parameters.
+Patching may not work for very primitive objects, like methods of lists.
+And sometimes, even if it works, it may confuse the whole program.
+It is not a good idea to patch some fundamental functions, like `int`.
+
+The builtin functions are easy to patch, but functions in user importable
+modules are harder to patch, because they can be imported and called in
+several different ways. For example the NumPy function `np.linalg.inv`
+can be imported and called in the following ways:
+* import numpy; numpy.linalg.inv(m)
+* from numpy import linalg; linalg.inv(m)
+* from numpy.linalg import inv; inv(m)
+
+The helper class `patch_helper` in file `tmc/utils.py` should
+make patching possible in all these cases. First
+create an object at the top-level: `ph = patch_helper(module_name)`.
+Then in the test cases you use it like below:
+
+```
+    def test_called(self):
+        a = np.array([[1,2], [3,4]])
+        with patch(ph("np.linalg.inv"), wraps=np.linalg.inv) as pinv:
+            p = f(a)
+            pinv.assert_called()
+```
+
+The following example shows how to access the arguments to the calls of patched function.
+
+```
+    def test_called(self):
+        with patch(ph("plt.scatter"), wraps=plt.scatter) as pscatter:
+	     f()
+	     pscatter.assert_called()
+	     args, kwargs = pscatter.call_args[0]  # get the arguments of the first call to plt.scatter
+	     self.assertEqual(len(args), 2, msg="Expected exactly two positional arguments to scatter!")
+	     self.assertIn("label", kwargs, msg="Expected keyword argument 'label'!")
+	     self.assertEqual(kwargs[label], "alpha", msg="Expected value 'alpha' to keyword argument 'label'!")
+```
+
+### Method calls
+
+
+Patching a method of an object is done with the `patch.object` function.
+Assume we want to patch the method `f` of an **instance** of class `A´:
+
+```
+class A(object):
+    def f(self):
+    	return 5
+```
+
+In the below example we patch the method `f` of an instance `a`:
+```
+    def test_calls(self):
+        a = A()
+        with patch.object(a, "f", wraps=a.f) as method_f:
+	     g(a)
+	     method_f.assert_called()
+
+```
+
+If we want to patch a method of all instances of a class, then the
+original method cannot be simply wrapped using the `wraps` argument. To enable wrapping
+we use the helper function `spy_decorator` from file `tmc/utils.py`.
+Below is an example of this:
+
+```
+    def test_called(self):
+        method_dropna = spy_decorator(pd.core.frame.DataFrame.dropna)
+        with patch.object(pd.core.frame.DataFrame, "dropna", new=method_dropna):
+            f()
+            method_dropna.mock.assert_called()
+```
