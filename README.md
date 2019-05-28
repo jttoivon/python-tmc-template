@@ -115,7 +115,7 @@ the value exists. Otherwise the error message maybe very confusing:
         self.assertEqual(type(ret_val), list, msg="Expected the return value to have type 'list'!")
         self.assertGreaterEqual(len(ret_val), 1, msg="Expected that the returned list is non-empty!")
         self.assertEqual(type(ret_val[0]), int, msg="Expected the values in the returned list to have type 'int'!")
-        self.assertEqual(ret_val[0], 5, msg="Expected function f to return value 5!")
+        self.assertEqual(ret_val[0], 5, msg="Expected function f to return a list whose first element is 5!")
 ```
 
 In NumPy there are several integer types, such as: np.int8, np.int16, np.int32.
@@ -169,6 +169,8 @@ syntax:
 	     patch("builtins.enumerate", wraps=enumerate) as penumerate:
             result = f(L1, L2)
             pzip.assert_called()
+            pmap.assert_called()
+            penumerate.assert_called()
 ```
 
 The patches are removed once the `with` block exits.
@@ -236,7 +238,7 @@ Below is an example of this:
 
 ```
     def test_called(self):
-        method_dropna = spy_decorator(pd.core.frame.DataFrame.dropna)
+        method_dropna = spy_decorator(pd.core.frame.DataFrame.dropna, "dropna")
         with patch.object(pd.core.frame.DataFrame, "dropna", new=method_dropna):
             f()
             method_dropna.mock.assert_called()

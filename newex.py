@@ -48,6 +48,10 @@ usage="""Usage: newex.py [-p partnumber ] [ -e exercisenumber ] 'name of exercis
 
 
 def write_src(dst, exname):
+    try:
+        os.makedirs(os.path.join(dst, "src"))
+    except FileExistsError:
+        pass
     filename=os.path.join(dst, "src", exname) + ".py"
     with open(filename, "w") as f:
         f.write(src_template % (exname, exname))
@@ -84,29 +88,9 @@ for opt, arg in optlist:
 dst = "e%02i_%s" % (exercise_number, exname)
 points = 'p%02i-%02i.1' % (part_number, exercise_number)
 
-
-src=exname
-print(dst)
 shutil.copytree(template, dst)
-
-#fsrc=dst + "/src/" + src + ".py"
-#ftest=dst + "/test/test_" + src + ".py"
-#os.rename(dst+"/src/function.py", fsrc)
-#os.rename(dst+"/test/test_function.py", ftest)
-
-# Insert the load command
-# module_name="src.%s" % src
-# replacement=r"""module_name="%s"\n%s = load(module_name, "%s")""" % (module_name, src, src)
-# command="""sed -i '/^ = load(/s/.*/%s/' %s""" % (replacement, ftest)
-# print(command)
-# os.system(command)
-
-# Insert the name of the class
-# command="""sed -i "/^class /s/.*/class %s(unittest.TestCase):/" %s""" % (capname, ftest)
-# print(command)
-# os.system(command)
 
 write_src(dst, exname)
 write_test(dst, exname, points, capname)
+print("Created exercise %s" % dst)
 
-#print("Created files:", ftest, fsrc)
